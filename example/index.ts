@@ -36,19 +36,42 @@ for (const tool of tools) {
 
 console.log(`${tools.length} tools ready. Pass this to any AI.\n`)
 
-// Step 3: Use with AILink (only if you have a key)
-const groqKey = process.env.GROQ_KEY
-if (!groqKey) {
-  console.log('No GROQ_KEY set — discovery done. Add key to test ai.run()')
-  process.exit(0)
+// Step 3: Mock AI registration and local execution
+class MockAI {
+  public registered: Record<string, { fn: Function; schema: any }> = {}
+
+  register(name: string, fn: Function, schema: any) {
+    this.registered[name] = { fn, schema }
+  }
 }
 
-import('@ailink/sdk').then(({ AILink }) => {
-  const ai = new AILink({ provider: 'groq', providerKey: groqKey })
-  registerWith(ai, tools)
+const mockAi = new MockAI()
+registerWith(mockAi, tools)
 
-  return ai.run('Cut my video.mp4 from 10 seconds to 45 seconds and save as trimmed.mp4')
-}).then(result => {
-  console.log('AI:', result.response)
-  console.log('Called:', result.toolsCalled)
-}).catch(console.error)
+console.log('Registered:', Object.keys(mockAi.registered))
+
+// Call one registered tool's fn with sample args to demonstrate end-to-end execution
+const trimVideoTool = mockAi.registered['trimVideo']
+if (trimVideoTool) {
+  trimVideoTool.fn({
+    inputFile: 'video.mp4',
+    startTime: 10,
+    endTime: 45,
+    outputFile: 'trimmed.mp4'
+  }).then((res: any) => {
+    console.log('\nTesting trimVideo tool execution:')
+    console.log(`Result: ${res}`)
+  })
+}
+
+/*
+// How to use with a real AILink instance:
+//
+// import { AILink } from '@ailink/sdk'
+//
+// const ai = new AILink({ provider: 'groq', providerKey: process.env.GROQ_KEY })
+// registerWith(ai, tools)
+//
+// const result = await ai.run('Cut my video.mp4 from 10 seconds to 45 seconds and save as trimmed.mp4')
+// console.log('AI Response:', result.response)
+*/

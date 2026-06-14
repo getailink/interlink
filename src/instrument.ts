@@ -12,7 +12,7 @@ export interface ToolDefinition {
   description: string
   parameters: {
     type: 'object'
-    properties: Record<string, { type: string; description: string }>
+    properties: Record<string, { type: string; description: string; items?: { type: string } }>
     required: string[]
   }
   fn: (args: Record<string, any>) => Promise<any>
@@ -25,9 +25,20 @@ export function instrument(library: Record<string, any>, debug = false): ToolDef
   for (const fn of fns) {
     const desc = describe(fn.name, fn.paramNames)
 
-    const properties: Record<string, { type: string; description: string }> = {}
+    const properties: Record<string, { type: string; description: string; items?: { type: string } }> = {}
     for (const [k, v] of Object.entries(desc.parameters)) {
       properties[k] = { type: v.type, description: v.description }
+    }
+
+    if (fn.isVariadic && fn.paramNames.length > 0) {
+      const lastParam = fn.paramNames[fn.paramNames.length - 1]
+      if (properties[lastParam]) {
+        properties[lastParam] = {
+          type: 'array',
+          items: { type: 'string' },
+          description: properties[lastParam].description
+        }
+      }
     }
 
     // capture fn in closure to avoid loop variable issue
@@ -48,7 +59,20 @@ export function instrument(library: Record<string, any>, debug = false): ToolDef
             return await captured.fn(args)
           } else {
             // function expects (a, b, c) — spread positional
-            const positional = captured.paramNames.map(p => args[p])
+            const positional: any[] = []
+            for (let i = 0; i < captured.paramNames.length; i++) {
+              const p = captured.paramNames[i]
+              const val = args[p]
+              if (captured.isVariadic && i === captured.paramNames.length - 1) {
+                if (Array.isArray(val)) {
+                  positional.push(...val)
+                } else if (val !== undefined) {
+                  positional.push(val)
+                }
+              } else {
+                positional.push(val)
+              }
+            }
             return await captured.fn(...positional)
           }
         } catch (err: any) {
