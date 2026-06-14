@@ -1,0 +1,30 @@
+{
+  "name": "interlink",
+  "version": "0.1.0",
+  "description": "Auto-discover functions in any library and generate AILink-compatible tool definitions. Built on @ailink/sdk.",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "example": "ts-node example/index.ts"
+  },
+  "peerDependencies": {
+    "@ailink/sdk": ">=0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@ailink/sdk": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "ts-node": "^10.9.0",
+    "@types/node": "^20.0.0"
+  }
+}
