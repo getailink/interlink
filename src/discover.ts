@@ -12,9 +12,16 @@ export interface DiscoveredFn {
   fn: (...args: any[]) => any
 }
 
-export function discover(lib: Record<string, any>, prefix = '', depth = 0): DiscoveredFn[] {
+export function discover(
+  lib: Record<string, any>,
+  prefix = '',
+  depth = 0,
+  visited = new Set<any>()
+): DiscoveredFn[] {
   const found: DiscoveredFn[] = []
   if (depth > 1) return found
+
+  visited.add(lib)
 
   for (const key of Object.keys(lib)) {
     try {
@@ -26,7 +33,9 @@ export function discover(lib: Record<string, any>, prefix = '', depth = 0): Disc
         const { paramNames, isDestructured, isVariadic } = extractParams(val)
         found.push({ name: fullName, paramNames, isDestructured, isVariadic, fn: val })
       } else if (typeof val === 'object' && !Array.isArray(val)) {
-        found.push(...discover(val, fullName, depth + 1))
+        if (!visited.has(val)) {
+          found.push(...discover(val, fullName, depth + 1, visited))
+        }
       }
     } catch {}
   }

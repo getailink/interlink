@@ -12,7 +12,8 @@
   ],
   "scripts": {
     "build": "tsc",
-    "example": "ts-node example/index.ts"
+    "example": "ts-node example/index.ts",
+    "example:path": "ts-node example/path-module.ts"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
