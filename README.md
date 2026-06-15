@@ -1,5 +1,7 @@
 # interlink
 
+**Status:** v0.1.0 — core functionality tested end-to-end, including a real run against @ailink/sdk + Groq. See Known Limitations below.
+
 Auto-discover every function in a JavaScript object or library and generate
 [AILink](https://github.com/getailink/ailink-sdk)-compatible tool definitions
 from them — without writing `ai.register()` by hand for each one.
