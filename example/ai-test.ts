@@ -9,7 +9,7 @@ import * as nodePath from 'node:path'
 
 // Inline .env loader (no dotenv dependency)
 try {
-  const envPath = path.resolve(process.cwd(), '.env')
+  const envPath = path.resolve(__dirname, '../.env')
   if (fs.existsSync(envPath)) {
     const content = fs.readFileSync(envPath, 'utf-8')
     const lines = content.split(/\r?\n/)
@@ -39,8 +39,25 @@ if (!GROQ_KEY || GROQ_KEY.trim() === '') {
   process.exit(0)
 }
 
+async function runWithRetry(ai: any, prompt: string, retries = 1): Promise<any> {
+  try {
+    return await ai.run(prompt)
+  } catch (err: any) {
+    if (retries > 0 && err?.status === 429) {
+      console.warn(`[rate limit] Got 429 rate limit. Waiting 10 seconds before retrying...`)
+      await new Promise(r => setTimeout(r, 10000))
+      return await runWithRetry(ai, prompt, retries - 1)
+    }
+    throw err;
+  }
+}
+
 async function main() {
-  const ai = new AILink({ provider: 'groq', providerKey: GROQ_KEY! })
+  const ai = new AILink({
+    provider: 'groq',
+    providerKey: GROQ_KEY!,
+    model: 'llama-3.1-8b-instant'
+  })
   const tools = instrument(nodePath)
   registerWith(ai, tools)
 
@@ -66,9 +83,14 @@ async function main() {
 
   const results: Array<{ prompt: string; toolsCalled: string; expected: string }> = []
 
-  for (const tc of testCases) {
+  for (let i = 0; i < testCases.length; i++) {
+    const tc = testCases[i]
+    if (i > 0) {
+      console.log('Waiting 2 seconds to avoid rate limits...')
+      await new Promise(r => setTimeout(r, 2000))
+    }
     console.log(`Running prompt: "${tc.prompt}"`)
-    const result = await ai.run(tc.prompt)
+    const result = await runWithRetry(ai, tc.prompt)
     console.log(`Response: ${result.response}`)
     console.log(`Tools Called: ${JSON.stringify(result.toolsCalled)}\n`)
 

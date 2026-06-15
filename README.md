@@ -188,6 +188,13 @@ const tools2 = loadSchema('./videolib-schema.json', videoLib)
 
 ---
 
+## Known Limitations
+
+- **Near-duplicate Sibling Names:** Libraries with many near-identical function names across nested namespaces (such as `win32_join`, `posix_join`, and the default top-level `join` in Node's `path` module) can sometimes lead the LLM to call a functionally-equivalent sibling tool rather than the expected top-level one due to naming similarities. This is a tool-selection challenge and not a bug in interlink.
+- **High Tool Count Latency:** Registering a large number of tools (30+) increases per-request latency and token usage because AILink sends all registered tool schemas with every single `ai.run()` request. For large libraries, consider manually scoping tools with AILink's `group` filtering or applying a smart tool-selector layer.
+
+---
+
 ## Testing status
 
 Tested end-to-end against the compiled `dist/` output in this repo:
@@ -199,10 +206,10 @@ Tested end-to-end against the compiled `dist/` output in this repo:
 | `instrument()` | ✅ tested |
 | `dumpSchema()` / `loadSchema()` | ✅ tested |
 | `registerWith()` | ✅ tested against a mock matching AILink's `ai.register(name, fn, schema)` signature |
-| Real `@ailink/sdk` + `ai.run()` | ⚠️ not yet verified — requires a provider key |
+| Real `@ailink/sdk` + `ai.run()` | ✅ verified — tested against Node's built-in `path` module using Groq |
 
-If you hit an issue running this against a real AILink instance, please open
-an issue with the error and a minimal repro.
+### Verification Details
+We have verified `interlink` end-to-end with a real `@ailink/sdk` and Groq LLM integration (using the `llama-3.1-8b-instant` model). The test instruments Node's built-in `path` module (registering all 39 tools, including nested `win32` and `posix` namespaces) and successfully routes and executes 3 sequential natural language prompts (extracting extensions, joining paths, and getting directories) without confusion.
 
 ---
 
@@ -217,6 +224,8 @@ src/
   index.ts       — exports
 example/
   index.ts       — runnable example using a mock video-editing object
+  path-module.ts — example demonstrating instrumentation of Node's built-in path module
+  ai-test.ts     — integration test using real @ailink/sdk and a Groq LLM
 ```
 
 ---
